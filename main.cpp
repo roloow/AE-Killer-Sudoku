@@ -13,30 +13,26 @@
 #include <fstream>
 #include <sstream>
 
-#include <curses.h>
 #include <iostream>
 
 // *********************************************************************
 //                       CONSTANTES GLOBALES
 // *********************************************************************
 
-/* Archivo a resolver */
-#define PUZZLE "easier_filled.txt"
-
 /* Maxima cantidad de generaciones */
-#define MAX_GEN 100
+const int MAX_GEN = 10000;
 
 /* Tamaño de la población */
-#define TAM_POB 100000
+const int TAM_POB = 1000;
 
 /* Probabilidad de cruzamiento */
-#define PROB_CRU 0.33
+const float PROB_CRU = 0.33;
 
 /* Probabilidad de mutación */
-#define PROB_MUT 0.33
+const float PROB_MUT = 0.33;
 
 /* Tamanno del problema */
-#define PROBLEM_SIZE 3
+const int PROBLEM_SIZE = 3;
 
 const int NONET_SIZE = PROBLEM_SIZE * PROBLEM_SIZE;
 const int BOARD_SIZE = NONET_SIZE * NONET_SIZE;
@@ -135,6 +131,7 @@ void calculate_fitness(dna& DNA, killer& RULES);
 int indexOf(int row, int col);
 int indexOfNonet(int row, int col);
 int randint(int MAX);
+float randfloat(float low, float high);
 int randintClose(dna& DNA, int row);
 dom createDom();
 int findDuplicates(std::vector<int>& set);
@@ -170,36 +167,63 @@ void showGame(dna& DNA);
 // *********************************************************************
 
 int main(){
+	// Variables del problema
 	srand (time(NULL));
 	population POB;
 	dna ORIGIN;
 	killer RULES;
-
-	loadGame(PUZZLE, ORIGIN, RULES);
-	showGame(ORIGIN);
-
-	POB = initPopulation(ORIGIN, RULES);
-	showGame(POB.best);
-	for (int i = 0; i < MAX_GEN; i++) {
-		
-		population nextGen;
-		nextGen = selection(POB);
-		nextGen = crossover(nextGen, RULES);
-		nextGen = mutation(nextGen, RULES);
-		elite(POB, nextGen);
-		POB = nextGen;
-		
-		
-		std::cout << "GENERACION: " << i + 1 << " FITNESS: " << POB.best.fitness << std::endl;
-		std::cout << std::endl;
-		showGame(POB.best);
-		std::cout << std::endl;
-		if (POB.best.fitness == 0) {
-			break;
-		}
-		
+	std::ofstream outfile;
+	
+	// SI SE QUIERE ATOMICO: TRUE - DIRECTORIO: FALSE
+	bool single = true;
+	
+	// PUZZLE atomico
+	std::string PUZZLE = "./Instancias/instancias-ejem/extreme_filled.txt";
+	
+	// PUZZLES en directorio (WARNING:: NOT WORKING FINE!)
+	std::string DIR = "./Instancias/instancias-ejem/";
+	std::vector<std::string> PUZZLES{"easier.txt", "easier_filled.txt", "easy.txt", "easy_filled.txt", "example.txt", "example_filled.txt", "extreme.txt", "extreme_filled.txt", "hard.txt", "hard_filled.txt", "mind_bending.txt", "mind_bending_filled.txt", "moderate.txt", "moderate_filled.txt", "outrageous.txt", "outrageous_filled.txt"};
+	
+	if (single){
+		PUZZLES.clear();
+		PUZZLES.push_back(PUZZLE);
 	}
 	
+	for (auto& name : PUZZLES) {
+		PUZZLE = DIR + name;
+		outfile.open("./results/out_"+name, std::ios_base::app);
+		// CARGA DE PUZZLE
+		loadGame(PUZZLE, ORIGIN, RULES);
+		// MOSTRAR JUEGO
+		showGame(ORIGIN);
+		// INICIALIZAR POBLACION
+		POB = initPopulation(ORIGIN, RULES);
+		// ITERACION GENERACIONAL
+		for (int i = 0; i < MAX_GEN; i++) {
+			population nextGen;
+			// PROCESO DE SELECCION
+			nextGen = selection(POB);
+			// PROCESO DE CRUZAMIENTO
+			nextGen = crossover(nextGen, RULES);
+			// PROCESO DE MUTACION
+			nextGen = mutation(nextGen, RULES);
+			// PROCESO DE ELITISMO
+			elite(POB, nextGen);
+			POB = nextGen;
+			
+			// RESULTADOS
+			// ARCHIVO TAM_POB:MAX_GEN:PROB_CRU:PROB_MUT:GEN:BESTGEN
+			outfile << TAM_POB << ":" << MAX_GEN << ":" << PROB_CRU << ":" << PROB_MUT << ":" << i << ":" << POB.best.fitness << std::endl;
+			std::cout << "GENERACION: " << i + 1 << " FITNESS: " << POB.best.fitness << " POB: " << POB.members.size() << std::endl;
+			std::cout << std::endl;
+			showGame(POB.best);
+			std::cout << std::endl;
+			if (POB.best.fitness == 0) {
+				break;
+			}
+		}
+		outfile.close();
+	}
 	return 0;
 }
 
@@ -218,6 +242,10 @@ int indexOfNonet (int row, int col) {
 int randint (int MAX) {
 	return rand() % MAX + 1;
 };
+
+float randfloat(float low, float high) {
+	return low + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(high-low)));
+}
 
 int randintClose (dna& DNA, int row) {
 	int result, value;
@@ -371,9 +399,9 @@ dna makeChild (dna& DNA1, dna& DNA2, killer& RULES, int split) {
 };
 
 void combine(dna& DNA1, dna& DNA2, killer& RULES, population& POB) {
-	int probability = randint(100);
+	float probability = randfloat(0.0,1.0);
 	dna child1, child2;
-	if (PROB_CRU * 100 >= probability) {
+	if (PROB_CRU >= probability) {
 		int cut_point = randint(80);
 		child1 = makeChild(DNA1,DNA2, RULES, cut_point);
 		child2 = makeChild(DNA2,DNA1, RULES, cut_point);
@@ -415,8 +443,8 @@ void swap(dna& DNA, int cell1, int cell2, killer& RULES) {
 }
 
 void mutate(dna& DNA, killer& RULES, population& POB) {
-	int probability = randint(100);
-	if (PROB_MUT * 100 >= probability){
+	float probability = randfloat(0.0,1.0);
+	if (PROB_MUT >= probability){
 		int mutate_cell = randint(80);
 		while (DNA.board.at(mutate_cell).preset) {
 			mutate_cell = randint(80);
@@ -459,7 +487,7 @@ population selection(population& POB) {
 		POB.members.at(i).prob = aux;
 	}
 	for (int i = 0; i < TAM_POB; i++) {
-		float prob = (float)(randint(100)) / 100.0;
+		float prob = randfloat(0.0,1.0);
 		for (unsigned j = 0; j < POB.members.size(); j++) {
 			if (POB.members.at(j).prob >= prob){
 				SELECTED.members.push_back(POB.members.at(j));
