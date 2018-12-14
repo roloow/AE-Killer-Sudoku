@@ -12,7 +12,6 @@
 #include <algorithm>
 #include <fstream>
 #include <sstream>
-
 #include <iostream>
 
 // *********************************************************************
@@ -29,11 +28,10 @@ const int TAM_POB = 500;
 const float PROB_CRU = 0.33;
 
 /* Probabilidad de mutación */
-const float PROB_MUT = 0.66;
+const float PROB_MUT = 0.33;
 
 /* Tamanno del problema */
 const int PROBLEM_SIZE = 3;
-
 const int NONET_SIZE = PROBLEM_SIZE * PROBLEM_SIZE;
 const int BOARD_SIZE = NONET_SIZE * NONET_SIZE;
 
@@ -46,7 +44,6 @@ const int BOARD_SIZE = NONET_SIZE * NONET_SIZE;
  * Representa una celda del tablero.
  * value:  valor de la casilla. Dominio {1, 2, 3, 4, 5, 6, 7, 8, 9, 0} 
  * 		   siendo 1-9 numeros y 0 que no se ha asignado valor.
- * group:  identificador del grupo al que pertenece la casilla 
  * preset: si la casilla fue entregada como pista inicial en el tablero */
 struct cell {
 	int value;
@@ -59,6 +56,7 @@ struct cell {
  * board:   vector de celdas, inicializado en BOARD_SIZE, basicamente 
  * 			el tablero.
  * fitness: valor de la funcion de evaluacion evaluada en el tablero.
+ * prob:    valor flotante de la probabilidad para la fase de seleccion.
  * */
 struct dna {
 	std::vector<cell> board = std::vector<cell>(BOARD_SIZE);
@@ -92,6 +90,7 @@ struct coord {
  * 
  * Representa varias celdas que conforman un grupo
  * members: vector de coordenadas, correspondiente a los miembros.
+ * total:   valor de la subseccion.
  * id:      identificador del grupo 
  * */
 struct group {
@@ -122,45 +121,60 @@ struct dom {
 //                           FUNCIONES
 // *********************************************************************
 
+/* Funciones para el calculo de la Funcion de Evaluacion */
 int col_fitness(dna& DNA);
 int row_fitness(dna& DNA);
 int nonet_fitness(dna& DNA);
 int groups_fitness(dna& DNA, killer& RULES);
 void calculate_fitness(dna& DNA, killer& RULES);
+int findDuplicates(std::vector<int>& set);
 
+/* Funciones de indexacion */
 int indexOf(int row, int col);
 int indexOfNonet(int row, int col);
+
+/* Funciones estocasticas */
 int randint(int MAX);
 float randfloat(float low, float high);
 int randintClose(dna& DNA, int row);
-dom createDom();
-int findDuplicates(std::vector<int>& set);
+
+/* Funciones para el manejo de DNA */
 void cleanDNA(dna& DNA);
 int getAt(const dna& DNA, int row, int col);
 void setAt(dna& DNA, int row, int col, int newVal);
-int getGAt(const dna& DNA, int row, int col);
-void setGAt(dna& DNA, int row, int col, int newVal);
 int getNAt(const dna& DNA, int row, int col);
 void setNAt(dna& DNA, int row, int col, int newVal);
+void blockCell(dna& DNA, int row, int col);
+
+/* Funciones Elitismo */
 dna calculateBest(population& POB);
 dna getBest(population& POB);
 void setBest(population& POB, dna newVal);
-void blockCell(dna& DNA, int row, int col);
+void elite(population& POB, population& newPOB);
 
+/* Funciones Cruzamiento */
 dna makeChild(dna& DNA1, dna& DNA2, killer& RULES, int split);
 void combine(dna& DNA1, dna& DNA2, killer& RULES, population& POB);
 population crossover(population& POB, killer& RULES);
+
+/* Funciones Mutacion */
 void swap(dna& DNA, int cell1, int cell2, killer& RULES);
 void mutate(dna& DNA, killer& RULES, population& POB);
 population mutation(population& POB, killer& RULES);
-population selection(population& POB);
-void elite(population& POB, population& newPOB);
 
+/* Funciones Seleccion */
+population selection(population& POB);
+
+/* Funciones de inicializacion */
 void initGen(dna& DNA);
 population initPopulation(dna& DNA, killer& RULES);
 
+/* Funciones de lectura y escritura de tablero */
 void loadGame(std::string filename, dna& DNA, killer& RULES);
 void showGame(dna& DNA);
+
+/* Funcion auxiliar */
+dom createDom();
 
 // *********************************************************************
 //                               MAIN
@@ -174,7 +188,7 @@ int main(){
 	killer RULES;
 	std::ofstream outfile;
 	
-	// SI SE QUIERE ATOMICO: TRUE - DIRECTORIO: FALSE
+	// SI SE QUIERE ATOMICO: TRUE - DIRECTORIO: FALSE (MANTENER TRUE)
 	bool single = true;
 	
 	// PUZZLE atomico
