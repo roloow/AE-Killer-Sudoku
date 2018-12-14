@@ -20,16 +20,16 @@
 // *********************************************************************
 
 /* Maxima cantidad de generaciones */
-const int MAX_GEN = 10000;
+const int MAX_GEN = 10000000;
 
 /* Tamaño de la población */
-const int TAM_POB = 1000;
+const int TAM_POB = 500;
 
 /* Probabilidad de cruzamiento */
 const float PROB_CRU = 0.33;
 
 /* Probabilidad de mutación */
-const float PROB_MUT = 0.33;
+const float PROB_MUT = 0.66;
 
 /* Tamanno del problema */
 const int PROBLEM_SIZE = 3;
@@ -178,7 +178,8 @@ int main(){
 	bool single = true;
 	
 	// PUZZLE atomico
-	std::string PUZZLE = "./Instancias/instancias-ejem/extreme_filled.txt";
+	//std::string PUZZLE = "real.txt";
+	std::string PUZZLE = "extreme_filled.txt";
 	
 	// PUZZLES en directorio (WARNING:: NOT WORKING FINE!)
 	std::string DIR = "./Instancias/instancias-ejem/";
@@ -398,7 +399,7 @@ dna makeChild (dna& DNA1, dna& DNA2, killer& RULES, int split) {
 	return child;
 };
 
-void combine(dna& DNA1, dna& DNA2, killer& RULES, population& POB) {
+void combine(dna& DNA1, dna& DNA2, killer& RULES, population& POB, bool twoC) {
 	float probability = randfloat(0.0,1.0);
 	dna child1, child2;
 	if (PROB_CRU >= probability) {
@@ -411,7 +412,9 @@ void combine(dna& DNA1, dna& DNA2, killer& RULES, population& POB) {
 		child2 = DNA2;
 	}
 	POB.members.push_back(child1);
-	POB.members.push_back(child2);
+	if (twoC) {
+		POB.members.push_back(child2);
+	}	
 };
 
 population crossover(population& POB, killer& RULES){
@@ -426,10 +429,10 @@ population crossover(population& POB, killer& RULES){
 		}
 		else if (y == POB.members.size()) {
 			y = 0;
-			combine(POB.members.at(x), POB.members.at(y), RULES, newEPOC);
+			combine(POB.members.at(x), POB.members.at(y), RULES, newEPOC, false);
 			break;
 		}
-		combine(POB.members.at(x), POB.members.at(y), RULES, newEPOC);
+		combine(POB.members.at(x), POB.members.at(y), RULES, newEPOC, true);
 	}
 	return newEPOC;
 };
