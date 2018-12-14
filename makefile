@@ -13,4 +13,4 @@ run:
 	./KillerSudoku
 
 clean:
-	rm main.o 
+	rm main.o KillerSudoku
